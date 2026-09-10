@@ -1,3 +1,7 @@
+import json
+from pathlib import Path
+
+
 def get_pair_counts(token_ids):
     pair_counts = {}
     for pair in zip(token_ids, token_ids[1:]):
@@ -89,37 +93,108 @@ def encode(text, merges):
         )
     return token_ids
 
+def save_tokenizer(merges, vocabulary, output_directory):
+    output_directory = Path(output_directory)
+    output_directory.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+    merge_data=[]
+
+    for pair, new_token_id in merges.items():
+        merge_data.append({
+            "left_token_id": pair[0],
+            "right_token_id": pair[1],
+            "new_token_id": new_token_id
+        })
+
+    vocabulary_data = {}
+    for token_id, token_bytes in vocabulary.items():
+        vocabulary_data[str(token_id)] = list(token_bytes)
+    merges_path = output_directory / "merges.json"
+    vocabulary_path = output_directory / "vocabulary.json"
+
+    merges_path.write_text(
+        json.dumps(merge_data, indent=2),
+        encoding="utf-8"
+    )
+    vocabulary_path.write_text(
+        json.dumps(vocabulary_data, indent=2),
+        encoding="utf-8"
+    )
+
+    print("\nTokenizer saved to: ")
+    print(output_directory)
+
+def load_tokenizer(output_directory):
+
+    output_directory = Path(output_directory)
+    merges_path = output_directory / "merges.json"
+    vocabulary_path = output_directory / "vocabulary.json"
+
+    merge_data = json.loads(
+        merges_path.read_text(encoding="utf-8")
+    )
+    vocabulary_data = json.loads(
+        vocabulary_path.read_text(encoding="utf-8")
+    )
+
+    merges= {}
+    for rule in merge_data:
+        pair = (
+            rule["left_token_id"],
+            rule["right_token_id"]
+        )
+        merges[pair] = rule["new_token_id"]
+
+    vocabulary = {}
+    for token_id, bytes_values in vocabulary_data.items():
+        vocabulary[int(token_id)] = bytes(bytes_values)
+
+    return merges, vocabulary
+
 if __name__ == "__main__":
 
     training_text = "abababab"
 
-    # Train the tokenizer
     compressed_tokens, learned_merges = train_bpe(
         text=training_text,
         vocabulary_size=258
     )
 
-    # Build token ID → bytes mapping
     vocabulary = build_vocabulary(learned_merges)
 
-    # Test on new text
+    tokenizer_directory = "artifacts/tokenizer"
+
+    # Save tokenizer
+    save_tokenizer(
+        merges=learned_merges,
+        vocabulary=vocabulary,
+        output_directory=tokenizer_directory
+    )
+
+    # Load tokenizer again
+    loaded_merges, loaded_vocabulary = load_tokenizer(
+        output_directory=tokenizer_directory
+    )
+
     new_text = "abab"
 
     encoded_tokens = encode(
         text=new_text,
-        merges=learned_merges
+        merges=loaded_merges
     )
 
     decoded_text = decode(
         token_ids=encoded_tokens,
-        vocabulary=vocabulary
+        vocabulary=loaded_vocabulary
     )
-
-    print("\nTraining text:")
-    print(training_text)
 
     print("\nLearned merges:")
     print(learned_merges)
+
+    print("\nLoaded merges:")
+    print(loaded_merges)
 
     print("\nNew text:")
     print(new_text)
@@ -130,9 +205,10 @@ if __name__ == "__main__":
     print("\nDecoded text:")
     print(decoded_text)
 
+    assert loaded_merges == learned_merges
     assert decoded_text == new_text
 
-    print("\nEncode-decode round trip passed.")
+    print("\nSave-load round trip passed.")
 
 """
 BPE basically first of all understand what are the repeated byte pairs in the text,, then replaces that repeated pair

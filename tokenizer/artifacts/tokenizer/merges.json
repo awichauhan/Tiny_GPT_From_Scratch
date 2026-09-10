@@ -1,0 +1,12 @@
+[
+  {
+    "left_token_id": 97,
+    "right_token_id": 98,
+    "new_token_id": 256
+  },
+  {
+    "left_token_id": 256,
+    "right_token_id": 256,
+    "new_token_id": 257
+  }
+]
