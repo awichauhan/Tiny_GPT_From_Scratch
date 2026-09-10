@@ -72,32 +72,67 @@ def build_vocabulary(merges):
 
 def decode(token_ids, vocabulary):
     decoded_bytes = b"".join(
-        vocabulary[token_ids]
+        vocabulary[token_id]
         for token_id in token_ids
     )
     decoded_text = decoded_bytes.decode("utf-8")
     return decoded_text
 
+def encode(text, merges):
+    token_ids = list(text.encode("utf-8"))
+
+    for pair_to_merge, new_token_id in merges.items():
+        token_ids = merge_pair(
+            token_ids = token_ids,
+            pair_to_merge=pair_to_merge,
+            new_token_id=new_token_id
+        )
+    return token_ids
+
 if __name__ == "__main__":
 
-    sample_text = "abababab"
+    training_text = "abababab"
 
+    # Train the tokenizer
     compressed_tokens, learned_merges = train_bpe(
-        text=sample_text,
+        text=training_text,
         vocabulary_size=258
     )
 
-    print("\nOriginal text:")
-    print(sample_text)
+    # Build token ID → bytes mapping
+    vocabulary = build_vocabulary(learned_merges)
 
-    print("\nOriginal byte tokens:")
-    print(list(sample_text.encode("utf-8")))
+    # Test on new text
+    new_text = "abab"
 
-    print("\nLearned merge rules:")
+    encoded_tokens = encode(
+        text=new_text,
+        merges=learned_merges
+    )
+
+    decoded_text = decode(
+        token_ids=encoded_tokens,
+        vocabulary=vocabulary
+    )
+
+    print("\nTraining text:")
+    print(training_text)
+
+    print("\nLearned merges:")
     print(learned_merges)
 
-    print("\nFinal compressed tokens:")
-    print(compressed_tokens)
+    print("\nNew text:")
+    print(new_text)
+
+    print("\nEncoded tokens:")
+    print(encoded_tokens)
+
+    print("\nDecoded text:")
+    print(decoded_text)
+
+    assert decoded_text == new_text
+
+    print("\nEncode-decode round trip passed.")
 
 """
 BPE basically first of all understand what are the repeated byte pairs in the text,, then replaces that repeated pair
