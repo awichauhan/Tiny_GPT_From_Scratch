@@ -70,14 +70,61 @@ class CausalAttentionHead(nn.Module):
 
         return output
 
+class MultiHeadAttention(nn.Module):
+
+    def __init__(
+            self,
+            embedding_size,
+            number_of_heads,
+            context_length
+    ):
+        super().__init__()
+
+        if embedding_size % number_of_heads != 0:
+            raise ValueError(
+                "embedding_size must be divisible by number_of_heads"
+            )
+        head_size = embedding_size // number_of_heads
+
+        self.heads = nn.ModuleList([
+            CausalAttentionHead(
+                embedding_size = embedding_size,
+                head_size = head_size,
+                context_length = context_length
+            )
+            for _ in range(number_of_heads)
+        ])
+
+        self.output_projection = nn.Linear(
+            embedding_size,
+            embedding_size
+        )
+
+    def forward(self, x):
+        head_outputs = [
+            head(x)
+            for head in self.heads
+        ]
+
+        concatenated_output = torch.cat(
+            head_outputs,
+            dim=-1
+        )
+
+        output = self.output_projection(
+            concatenated_output
+        )
+
+        return output
 
 if __name__ == "__main__":
+
     torch.manual_seed(42)
 
-    batch_size =2
-    context_length = 4
+    batch_size = 2
+    context_length = 5
     embedding_size = 8
-    head_size = 4
+    number_of_heads = 2
 
     x = torch.randn(
         batch_size,
@@ -85,19 +132,16 @@ if __name__ == "__main__":
         embedding_size
     )
 
-    attention_head = CausalAttentionHead(
+    multi_head_attention = MultiHeadAttention(
         embedding_size=embedding_size,
-        head_size= head_size,
+        number_of_heads=number_of_heads,
         context_length=context_length
     )
 
-    output = attention_head(x)
+    output = multi_head_attention(x)
 
-    print("Input shape: ")
+    print("Input shape:")
     print(x.shape)
 
-    print("\nCausal mask: ")
-    print(attention_head.causal_mask)
-
-    print("\nOutput shape: ")
+    print("\nMulti-head output shape:")
     print(output.shape)
