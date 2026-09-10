@@ -61,6 +61,11 @@ torch.save(
     TRAIN_TOKENS_PATH
 )
 
+torch.save(
+    validation_tokens,
+    VALIDATION_TOKEN_PATH
+)
+
 print("Vocabulary size:")
 print(vocabulary_size)
 
