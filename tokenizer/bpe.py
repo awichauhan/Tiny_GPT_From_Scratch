@@ -55,6 +55,29 @@ def train_bpe(text, vocabulary_size):
         )
     return token_ids, merges
 
+def build_vocabulary(merges):
+
+    vocabulary = {
+        token_id: bytes([token_id])
+        for token_id in range(256)
+    }
+
+    for pair, new_token_id in merges.items():  # .items() returns key-value pairs as tuples
+        left_token_id, right_token_id = pair  # unpacks two tuple elements and store it in pair
+        vocabulary[new_token_id] = (
+            vocabulary[left_token_id]
+            + vocabulary[right_token_id]
+        )
+    return vocabulary
+
+def decode(token_ids, vocabulary):
+    decoded_bytes = b"".join(
+        vocabulary[token_ids]
+        for token_id in token_ids
+    )
+    decoded_text = decoded_bytes.decode("utf-8")
+    return decoded_text
+
 if __name__ == "__main__":
 
     sample_text = "abababab"
