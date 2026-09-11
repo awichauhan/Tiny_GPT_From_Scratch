@@ -116,32 +116,3 @@ class MultiHeadAttention(nn.Module):
         )
 
         return output
-
-if __name__ == "__main__":
-
-    torch.manual_seed(42)
-
-    batch_size = 2
-    context_length = 5
-    embedding_size = 8
-    number_of_heads = 2
-
-    x = torch.randn(
-        batch_size,
-        context_length,
-        embedding_size
-    )
-
-    multi_head_attention = MultiHeadAttention(
-        embedding_size=embedding_size,
-        number_of_heads=number_of_heads,
-        context_length=context_length
-    )
-
-    output = multi_head_attention(x)
-
-    print("Input shape:")
-    print(x.shape)
-
-    print("\nMulti-head output shape:")
-    print(output.shape)
